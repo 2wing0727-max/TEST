@@ -28,7 +28,10 @@ from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 
-sys.stdout.reconfigure(encoding="utf-8")
+try:
+    sys.stdout.reconfigure(encoding="utf-8")
+except Exception:  # Streamlit 등 stdout이 교체된 환경에서는 건너뜀
+    pass
 
 BASE_DIR = Path(__file__).resolve().parent
 DEFAULT_INPUT_DIR = BASE_DIR / "한국표준협회_주간보고"
@@ -91,11 +94,15 @@ def read_report(path: Path) -> Report:
     except Exception as e:
         raise AgentError(f"'{path.name}' 파일을 읽는 중 오류가 발생했습니다: {redact(str(e))}")
 
+    return report_from_text(path.name, text)
+
+
+def report_from_text(file_name: str, text: str) -> Report:
     m = re.search(r"작성팀:\s*(.+)", text)
     team = m.group(1).strip() if m else "확인 필요"
     m = re.search(r"보고기간:\s*(.+)", text)
     period = m.group(1).strip() if m else "확인 필요"
-    return Report(file_name=path.name, team=team, period=period, text=text)
+    return Report(file_name=file_name, team=team, period=period, text=text)
 
 
 # ---------------------------------------------------------------------------
@@ -237,6 +244,48 @@ def repair_draft(client, model, draft, problems, user_content, max_tokens) -> st
 # 4. 메인 파이프라인
 # ---------------------------------------------------------------------------
 
+def generate_proposal(reports: list[Report], api_key: str, model: str, max_tokens: int, log=print):
+    """보고서 목록 -> (제안서 전체 마크다운, 파일명용 기간 태그). CLI와 Streamlit 앱이 함께 사용한다."""
+    from anthropic import Anthropic
+    client = Anthropic(api_key=api_key)
+    user_content = build_user_content(reports)
+
+    log("[안내] Claude API로 제안서를 생성합니다...")
+    draft = call_claude(client, model, SYSTEM_PROMPT, user_content, max_tokens)
+
+    log("[안내] 구조·근거·수치를 자동 점검합니다...")
+    problems = check_draft(draft, reports)
+    if problems:
+        log(f"[안내] 점검에서 {len(problems)}건 발견하여 1회 보완 요청을 합니다.")
+        for p in problems:
+            log(f"  - {p}")
+        draft = repair_draft(client, model, draft, problems, user_content, max_tokens)
+        problems = check_draft(draft, reports)
+        if problems:
+            log("[경고] 보완 후에도 다음 사항이 남아 있습니다 (본문을 직접 확인해 주세요):")
+            for p in problems:
+                log(f"  - {p}")
+    else:
+        log("[안내] 점검을 모두 통과했습니다.")
+
+    periods = {r.period for r in reports if r.period != "확인 필요"}
+    period = periods.pop() if len(periods) == 1 else "확인 필요"
+    if len(periods) > 1:
+        log(f"[경고] 보고서들의 보고기간이 서로 다릅니다: {periods}")
+    tag = re.sub(r"[^0-9A-Za-z가-힣~\-]", "", re.sub(r"\([^)]*\)", "", period)) or "기간확인필요"
+
+    header = (
+        "# 부서 공통 문제 해결 제안서 (초안)\n\n"
+        f"- 대상 보고 기간: {period}\n"
+        f"- 생성 일시: {datetime.now().strftime('%Y-%m-%d %H:%M')}\n"
+        f"- 사용 모델: {model}\n"
+        f"- 근거 보고서 ({len(reports)}건): " + ", ".join(r.file_name for r in reports) + "\n\n"
+        "※ AI가 보고서 원문만을 근거로 작성한 초안입니다. '[제안]' 표시는 원문에 없는 새 제안이며, "
+        "'확인 필요'는 원문만으로 알 수 없는 내용입니다. 검토 후 확정해 주세요.\n\n---\n\n"
+    )
+    return header + draft, tag
+
+
 def run(input_dir: Path, pattern: str, output_dir: Path, model: str, env_path: Path, max_tokens: int):
     api_key = load_api_key(env_path)
 
@@ -252,48 +301,11 @@ def run(input_dir: Path, pattern: str, output_dir: Path, model: str, env_path: P
         print(f"  - {f.name}")
 
     reports = [read_report(f) for f in files]
-
-    from anthropic import Anthropic
-    client = Anthropic(api_key=api_key)
-    user_content = build_user_content(reports)
-
-    print("[안내] Claude API로 제안서를 생성합니다...")
-    draft = call_claude(client, model, SYSTEM_PROMPT, user_content, max_tokens)
-
-    print("[안내] 구조·근거·수치를 자동 점검합니다...")
-    problems = check_draft(draft, reports)
-    if problems:
-        print(f"[안내] 점검에서 {len(problems)}건 발견하여 1회 보완 요청을 합니다.")
-        for p in problems:
-            print(f"  - {p}")
-        draft = repair_draft(client, model, draft, problems, user_content, max_tokens)
-        problems = check_draft(draft, reports)
-        if problems:
-            print("[경고] 보완 후에도 다음 사항이 남아 있습니다 (본문을 직접 확인해 주세요):")
-            for p in problems:
-                print(f"  - {p}")
-    else:
-        print("[안내] 점검을 모두 통과했습니다.")
-
-    periods = {r.period for r in reports if r.period != "확인 필요"}
-    period = periods.pop() if len(periods) == 1 else "확인 필요"
-    if len(periods) > 1:
-        print(f"[경고] 보고서들의 보고기간이 서로 다릅니다: {periods}")
-    tag = re.sub(r"[^0-9A-Za-z가-힣~\-]", "", re.sub(r"\([^)]*\)", "", period)) or "기간확인필요"
-
-    header = (
-        "# 부서 공통 문제 해결 제안서 (초안)\n\n"
-        f"- 대상 보고 기간: {period}\n"
-        f"- 생성 일시: {datetime.now().strftime('%Y-%m-%d %H:%M')}\n"
-        f"- 사용 모델: {model}\n"
-        f"- 근거 보고서 ({len(reports)}건): " + ", ".join(r.file_name for r in reports) + "\n\n"
-        "※ AI가 보고서 원문만을 근거로 작성한 초안입니다. '[제안]' 표시는 원문에 없는 새 제안이며, "
-        "'확인 필요'는 원문만으로 알 수 없는 내용입니다. 검토 후 확정해 주세요.\n\n---\n\n"
-    )
+    document, tag = generate_proposal(reports, api_key, model, max_tokens)
 
     output_dir.mkdir(parents=True, exist_ok=True)
     output_path = output_dir / f"공통문제_해결제안서_{tag}.md"
-    output_path.write_text(header + draft, encoding="utf-8")  # 완성 후에만 기록
+    output_path.write_text(document, encoding="utf-8")  # 완성 후에만 기록
     return len(reports), output_path
 
 
