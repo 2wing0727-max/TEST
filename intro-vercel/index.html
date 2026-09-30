@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>월간 영업 실적 회의</title>
+<style>
+:root{
+  --bg:#f5f6f8; --card:#fff; --text:#1c2230; --muted:#6a7386; --line:#e3e6ec;
+  --prev:#b7bfcc; --cur:#2f6df6; --fc:#9db9fb; --up:#d6336c; --down:#1971c2;
+  --retail:#2f6df6; --online:#0ca678; --accent-soft:#eef3ff;
+}
+@media (prefers-color-scheme: dark){
+  :root{--bg:#141821; --card:#1d2230; --text:#e8ebf2; --muted:#98a2b8; --line:#2e3547;
+  --prev:#5c667c; --cur:#5b8cff; --fc:#3b528f; --up:#ff7aa8; --down:#6db3ff; --accent-soft:#232b42;}
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font-family:"Pretendard","Malgun Gothic","Apple SD Gothic Neo",system-ui,sans-serif;line-height:1.5}
+.wrap{max-width:1180px;margin:0 auto;padding:24px 16px 64px}
+header{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;justify-content:space-between;margin-bottom:20px}
+h1{font-size:22px;margin:0}
+.sub{color:var(--muted);font-size:13px;margin-top:2px}
+.controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center;font-size:13px}
+select,input,textarea,button{font:inherit;color:inherit}
+select,input[type=number],input[type=text],input[type=date],textarea{background:var(--card);border:1px solid var(--line);border-radius:6px;padding:5px 8px}
+button{background:var(--card);border:1px solid var(--line);border-radius:6px;padding:5px 12px;cursor:pointer}
+button:hover{border-color:var(--cur)}
+button.primary{background:var(--cur);border-color:var(--cur);color:#fff}
+section{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:18px;margin-bottom:18px}
+h2{font-size:16px;margin:0 0 12px;display:flex;align-items:center;gap:8px}
+h2 .no{background:var(--cur);color:#fff;border-radius:50%;width:22px;height:22px;font-size:12px;display:inline-flex;align-items:center;justify-content:center}
+h3{font-size:14px;margin:18px 0 8px;display:flex;align-items:center;gap:6px}
+.dot{width:10px;height:10px;border-radius:3px;display:inline-block}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-bottom:14px}
+.kpi{background:var(--accent-soft);border-radius:10px;padding:12px 14px}
+.kpi .l{font-size:12px;color:var(--muted)}
+.kpi .v{font-size:22px;font-weight:700;margin-top:2px}
+.kpi .d{font-size:12px;margin-top:2px;color:var(--muted)}
+.up{color:var(--up);font-weight:600}.down{color:var(--down);font-weight:600}
+.scroll{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:13px;font-variant-numeric:tabular-nums}
+th,td{padding:6px 8px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
+th:first-child,td:first-child{text-align:left}
+thead th{color:var(--muted);font-weight:600;background:transparent}
+tfoot td,tr.total td{font-weight:700}
+td input[type=number]{width:74px;text-align:right;padding:3px 5px}
+td.fc{color:var(--muted);font-style:italic}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:800px){.grid2{grid-template-columns:1fr}}
+.chartbox{border:1px solid var(--line);border-radius:10px;padding:10px}
+.chartbox svg{width:100%;height:auto;display:block}
+.legend{display:flex;gap:12px;font-size:12px;color:var(--muted);margin-top:4px;flex-wrap:wrap}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:4px;vertical-align:-1px}
+.note{font-size:12px;color:var(--muted);margin:8px 0 0}
+.assump{display:flex;flex-wrap:wrap;gap:14px;margin-bottom:12px;font-size:13px}
+.assump label{display:flex;align-items:center;gap:6px}
+.assump input{width:70px;text-align:right}
+td input[type=text],td input[type=date],td select{width:100%;min-width:90px}
+td.act{text-align:center}
+textarea{width:100%;min-height:90px;resize:vertical}
+.badge{font-size:11px;background:var(--accent-soft);color:var(--cur);border-radius:20px;padding:1px 8px;font-weight:600}
+.entry{background:var(--accent-soft);border-radius:10px;padding:12px 14px;margin:16px 0 4px;display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;font-size:13px}
+.entry label{display:flex;flex-direction:column;gap:3px;color:var(--muted);font-size:12px}
+.entry input{width:110px;text-align:right}
+.entry .hint{flex-basis:100%;color:var(--muted);font-size:12px}
+.cmt{border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-top:10px}
+.cmt.warn{border-color:var(--up)}
+.cmt .st{font-size:12px;margin:4px 0 6px;color:var(--muted)}
+.cmt.warn .st{color:var(--up);font-weight:600}
+.cmt textarea{min-height:64px}
+.cmt .hist{font-size:12px;color:var(--muted);margin-top:6px}
+.repnav{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;margin-bottom:18px}
+.repnav .tabs{display:flex;gap:6px;flex-wrap:wrap}
+.repnav .tabs button.on{background:var(--cur);border-color:var(--cur);color:#fff}
+@media print{
+  body{background:#fff}.controls,button,.noprint{display:none!important}
+  section{break-inside:avoid;border-color:#ccc}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <div>
+    <h1>월간 영업 실적 회의 · <span id="repName"></span> <span class="badge" id="periodBadge"></span></h1>
+    <div class="sub">누계 실적 분석 · 예상 실적 · 방문 계획 &nbsp;|&nbsp; 입력값은 이 브라우저에 자동 저장됩니다 (현재 값은 예시 데이터)</div>
+  </div>
+  <div class="controls">
+    <label>연도 <input type="number" id="year" style="width:72px"></label>
+    <label>기준월 <select id="baseMonth"></select></label>
+    <label>단위 <select id="unit"><option>백만원</option><option>천원</option><option>원</option></select></label>
+    <button id="btnPrint">인쇄/PDF</button>
+    <button id="btnReset">예시로 초기화</button>
+  </div>
+</header>
+<nav class="repnav noprint"><button id="btnPrev">◀ 이전</button><span class="tabs" id="repTabs"></span><button class="primary" id="btnNext">다음 영업사원 ▶</button></nav>
+
+<section>
+  <h2><span class="no">1</span>상품별 누계 실적 (전년 vs 올해)</h2>
+  <div class="kpis" id="kpis"></div>
+  <div class="scroll"><table id="sumTable"></table></div>
+  <div class="entry noprint">
+    <label>입력 월 <select id="entMonth"></select></label>
+    <span id="entFields" style="display:contents"></span>
+    <button class="primary" id="btnEnt">이번 달 실적 반영</button>
+    <span class="hint">매월 1번, 해당 월 실적만 입력하면 기준월이 그 달로 넘어가며 누계·예상·차트가 갱신됩니다. 이전 월 데이터는 그대로 유지됩니다.</span>
+  </div>
+  <h3>월별 실적 입력 <span class="note" style="margin:0">— 올해 실적은 기준월까지만 입력, 이후는 예상치가 자동 계산됩니다.</span></h3>
+  <div id="grids"></div>
+  <div class="grid2" style="margin-top:14px" id="charts"></div>
+  <div id="declineBox"></div>
+  <div class="legend"><span><i style="background:var(--prev)"></i>전년 실적</span><span><i style="background:var(--cur)"></i>올해 실적</span><span><i style="background:var(--fc)"></i>올해 예상</span></div>
+</section>
+
+<section>
+  <h2><span class="no">2</span>이후 월 예상 실적</h2>
+  <div class="assump" id="assump"></div>
+  <div class="scroll"><table id="fcTable"></table></div>
+  <p class="note">예상 = 전년 동월 실적 × (1 + 예상 증감률). 증감률을 비워두면 기준월까지의 누계 증감률을 적용합니다.</p>
+</section>
+
+<section>
+  <h2><span class="no">3</span><span id="visitTitle">방문 계획</span></h2>
+  <div class="scroll"><table id="visitTable"></table></div>
+  <div style="margin-top:10px" class="noprint"><button class="primary" id="btnAddVisit">+ 방문 추가</button></div>
+  <h3>회의 메모</h3>
+  <textarea id="notes" placeholder="이슈, 지원 요청, 결정 사항 등을 기록하세요"></textarea>
+</section>
+<div class="repnav noprint" style="justify-content:center"><button class="primary" id="btnNext2">다음 영업사원 ▶</button></div>
+</div>
+
+<script>
+const KEY='monthly-sales-meeting-v1';
+const M=[1,2,3,4,5,6,7,8,9,10,11,12];
+const COLORS={retail:'var(--retail)',online:'var(--online)'};
+
+const REP_IDS=['A','B','C','D'];
+const REP_FACTORS={A:[1,1,1],B:[0.8,0.93,1.15],C:[0.65,1.08,0.92],D:[0.9,0.97,0.96]};
+const REP_VISITS={
+  A:[['03','A유통 본사','retail','추석 시즌 물량 협의'],['10','B마트 강남점','retail','진열 확대 및 프로모션 안내'],['17','C기업 구독 담당','online','연간 구독 갱신 제안'],['24','D온라인몰','online','신규 요금제 도입 협의']],
+  B:[['02','E식품 유통','retail','재고 조정 원인 확인'],['09','F편의점 본부','retail','신규 SKU 입점 제안'],['16','G대학교 도서관','online','구독 계약 갱신'],['23','H연구소','online','기관 라이선스 확대']],
+  C:[['04','I백화점 본점','retail','시즌 행사 물량 협의'],['11','J쇼핑몰','retail','단독 프로모션 협의'],['18','K출판사','online','구독 해지 방어 면담'],['25','L스타트업','online','팀 요금제 제안']],
+  D:[['05','M리테일 그룹','retail','분기 발주 계획 협의'],['12','N할인점','retail','매대 위치 조정'],['19','O공공기관','online','연간 구독 입찰 준비'],['26','P학원 협회','online','단체 구독 제안']]
+};
+const BASE_DATA={
+  retailPrev:[820,760,910,880,940,900,870,930,960,1020,1080,1150],
+  retailCur:[850,790,950,900,1010,940,900,980,1000,0,0,0],
+  onlinePrev:[310,320,340,360,380,400,420,440,460,480,500,530],
+  onlineCur:[380,405,440,470,500,530,555,585,610,0,0,0]
+};
+const sc=(a,f)=>a.map(v=>Math.round(v*f));
+function repSample(id,year,base){
+  const [kp,kr,ko]=REP_FACTORS[id], B=BASE_DATA, ym=String(year);
+  return {
+    name:'영업사원 '+id,
+    products:{
+      retail:{name:'리테일',prev:sc(B.retailPrev,kp),cur:sc(B.retailCur,kp*kr),growth:'',comments:{}},
+      online:{name:'온라인구독',prev:sc(B.onlinePrev,kp),cur:sc(B.onlineCur,kp*ko),growth:'',comments:{}}
+    },
+    visits:REP_VISITS[id].map(v=>({date:`${ym}-${String(base).padStart(2,'0')}-${v[0]}`,client:v[1],product:v[2],purpose:v[3],owner:'영업사원 '+id,status:'예정'})),
+    notes:''
+  };
+}
+const SAMPLE=()=>{
+  const d={year:2026,base:9,unit:'백만원',rep:'A',reps:{}};
+  REP_IDS.forEach(id=>d.reps[id]=repSample(id,d.year,d.base));
+  return d;
+};
+
+let S=load();
+function load(){
+  let r=null;
+  try{const t=localStorage.getItem(KEY);if(t)r=JSON.parse(t)}catch(e){}
+  const d=SAMPLE();
+  if(r&&r.reps){Object.assign(d,{year:r.year,base:r.base,unit:r.unit,rep:r.rep||'A'});REP_IDS.forEach(id=>{if(r.reps[id])d.reps[id]=r.reps[id]})}
+  else if(r&&r.products){Object.assign(d,{year:r.year,base:r.base,unit:r.unit});d.reps.A={name:'영업사원 A',products:r.products,visits:r.visits||[],notes:r.notes||''}}
+  REP_IDS.forEach(id=>{for(const k in d.reps[id].products){d.reps[id].products[k].comments=d.reps[id].products[k].comments||{}}});
+  const h=(location.hash||'').replace('#','').toUpperCase();
+  if(REP_IDS.includes(h))d.rep=h;
+  return d;
+}
+function useRep(id){
+  if(!S.reps[id])id='A';
+  S.rep=id;
+  const r=S.reps[id]; S.products=r.products; S.visits=r.visits; S.notes=r.notes;
+}
+function save(){
+  try{localStorage.setItem(KEY,JSON.stringify(S,function(k,v){return this===S&&(k==='products'||k==='visits'||k==='notes')?undefined:v}))}catch(e){}
+}
+function renderNav(){
+  const i=REP_IDS.indexOf(S.rep), nx=REP_IDS[(i+1)%REP_IDS.length], pv=REP_IDS[(i+REP_IDS.length-1)%REP_IDS.length];
+  $('repName').textContent=S.reps[S.rep].name;
+  $('repTabs').innerHTML=REP_IDS.map(id=>`<button data-r="${id}" class="${id===S.rep?'on':''}">${esc(S.reps[id].name)}</button>`).join('');
+  $('repTabs').querySelectorAll('button').forEach(b=>b.onclick=()=>goRep(b.dataset.r));
+  $('btnPrev').textContent='◀ '+S.reps[pv].name; $('btnPrev').onclick=()=>goRep(pv);
+  const nl=`다음: ${S.reps[nx].name} ▶`;
+  $('btnNext').textContent=nl; $('btnNext2').textContent=nl;
+  $('btnNext').onclick=$('btnNext2').onclick=()=>goRep(nx);
+}
+function goRep(id){
+  S.rep=id; save();
+  try{history.replaceState(null,'','#'+id)}catch(e){}
+  init(); window.scrollTo(0,0);
+}
+
+const fmt=n=>Math.round(n).toLocaleString('ko-KR');
+const sum=(a,n)=>a.slice(0,n).reduce((x,y)=>x+(+y||0),0);
+const pct=(c,p)=>p? (c/p-1)*100 : 0;
+const pctHtml=v=>`<span class="${v>=0?'up':'down'}">${v>=0?'▲':'▼'} ${Math.abs(v).toFixed(1)}%</span>`;
+const sgn=n=>(n>=0?'+':'−')+fmt(Math.abs(n));
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const $=id=>document.getElementById(id);
+
+/* 계산 */
+function calc(){
+  const b=+S.base, out={};
+  for(const k in S.products){
+    const p=S.products[k];
+    const ytdP=sum(p.prev,b), ytdC=sum(p.cur,b);
+    const ytdG=pct(ytdC,ytdP);
+    const g = p.growth===''||p.growth==null||isNaN(+p.growth) ? ytdG : +p.growth;
+    const full=M.map((m,i)=> m<=b ? +p.cur[i]||0 : (+p.prev[i]||0)*(1+g/100));
+    out[k]={ytdP,ytdC,ytdG,g,full,fullTotal:full.reduce((a,c)=>a+c,0),prevTotal:sum(p.prev,12),usedAuto:p.growth===''||p.growth==null};
+  }
+  return out;
+}
+
+/* 렌더: 입력 그리드(기준월/초기화 시에만) */
+function renderStatic(){
+  $('year').value=S.year; $('unit').value=S.unit;
+  $('baseMonth').innerHTML=M.map(m=>`<option value="${m}" ${m==S.base?'selected':''}>${m}월</option>`).join('');
+  $('btnPrint').onclick=()=>window.print();
+  let g='';
+  for(const k in S.products){
+    const p=S.products[k];
+    g+=`<h3><span class="dot" style="background:${COLORS[k]}"></span>${esc(p.name)}</h3><div class="scroll"><table>
+    <thead><tr><th></th>${M.map(m=>`<th>${m}월</th>`).join('')}<th>연간</th></tr></thead><tbody>
+    <tr><td>${S.year-1}년 실적</td>${M.map((m,i)=>`<td><input type="number" data-k="${k}" data-t="prev" data-i="${i}" value="${p.prev[i]}"></td>`).join('')}<td id="pt-${k}-prev"></td></tr>
+    <tr><td>${S.year}년 실적/예상</td>${M.map((m,i)=>m<=S.base
+      ?`<td><input type="number" data-k="${k}" data-t="cur" data-i="${i}" value="${p.cur[i]}"></td>`
+      :`<td class="fc" id="fc-${k}-${i}"></td>`).join('')}<td id="pt-${k}-cur"></td></tr>
+    <tr><td>전년 대비</td>${M.map((m,i)=>`<td id="yy-${k}-${i}"></td>`).join('')}<td id="yy-${k}-all"></td></tr>
+    </tbody></table></div>`;
+  }
+  $('grids').innerHTML=g;
+  $('declineBox').innerHTML=`<h3>전년 대비 매출 하락 고객사 코멘트 <span class="note" style="margin:0">— ${S.base}월 기준</span></h3>`+Object.keys(S.products).map(k=>`<div class="cmt" id="cb-${k}"><b><span class="dot" style="background:${COLORS[k]}"></span> ${esc(S.products[k].name)}</b><div class="st" id="cs-${k}"></div><textarea data-k="${k}" placeholder="매출이 하락한 고객사와 사유를 적어주세요. 예) A유통 −12백만원: 재고 조정으로 발주 감소">${esc(S.products[k].comments[S.base]||'')}</textarea><div class="hist" id="ch2-${k}"></div></div>`).join('');
+  $('declineBox').querySelectorAll('textarea').forEach(el=>el.addEventListener('input',e=>{
+    S.products[e.target.dataset.k].comments[S.base]=e.target.value; save();
+  }));
+  renderEntry();
+  $('grids').querySelectorAll('input').forEach(el=>el.addEventListener('input',e=>{
+    const d=e.target.dataset; S.products[d.k][d.t][d.i]=parseFloat(e.target.value)||0; save(); update();
+  }));
+  $('charts').innerHTML=Object.keys(S.products).map(k=>`<div class="chartbox"><b style="font-size:13px">${esc(S.products[k].name)} 월별</b><div id="ch-${k}"></div></div>`).join('');
+  $('assump').innerHTML=Object.keys(S.products).map(k=>`<label>${esc(S.products[k].name)} 예상 증감률(%) <input type="number" step="0.1" data-k="${k}" value="${S.products[k].growth}" placeholder="자동"></label>`).join('')
+    +`<span class="note" style="margin:0" id="autoNote"></span>`;
+  $('assump').querySelectorAll('input').forEach(el=>el.addEventListener('input',e=>{
+    S.products[e.target.dataset.k].growth=e.target.value; save(); update();
+  }));
+}
+
+/* 월 실적 입력 패널 */
+function renderEntry(){
+  const sel=$('entMonth'); sel.innerHTML=M.map(m=>`<option value="${m}" ${m==S.base?'selected':''}>${m}월</option>`).join('');
+  const fill=()=>{ $('entFields').innerHTML=Object.keys(S.products).map(k=>`<label>${esc(S.products[k].name)} ${sel.value}월 실적<input type="number" data-k="${k}" value="${S.products[k].cur[sel.value-1]||''}"></label>`).join(''); };
+  sel.onchange=fill; fill();
+  $('btnEnt').onclick=()=>{
+    const m=+sel.value;
+    $('entFields').querySelectorAll('input').forEach(el=>{S.products[el.dataset.k].cur[m-1]=parseFloat(el.value)||0});
+    S.base=m; save(); renderStatic(); update();
+  };
+}
+
+/* 렌더: 계산 결과 갱신 */
+function update(){
+  const R=calc(), b=+S.base, unit=S.unit;
+  $('periodBadge').textContent=`${S.year}년 1~${b}월 누계`;
+  $('visitTitle').textContent=`${b}월 영업 방문 계획`;
+  let tP=0,tC=0,tF=0,tFP=0;
+  for(const k in R){tP+=R[k].ytdP;tC+=R[k].ytdC;tF+=R[k].fullTotal;tFP+=R[k].prevTotal}
+  const kp=(l,v,d)=>`<div class="kpi"><div class="l">${l}</div><div class="v">${v}</div><div class="d">${d}</div></div>`;
+  $('kpis').innerHTML=
+    kp('전체 올해 누계',fmt(tC)+` <small style="font-size:12px;font-weight:400">${unit}</small>`,`전년 ${fmt(tP)} · ${pctHtml(pct(tC,tP))} (${sgn(tC-tP)})`)
+   +Object.keys(R).map(k=>kp(S.products[k].name+' 누계',fmt(R[k].ytdC),`전년 ${fmt(R[k].ytdP)} · ${pctHtml(R[k].ytdG)}`)).join('')
+   +kp('연간 예상 합계',fmt(tF),`전년 연간 ${fmt(tFP)} · ${pctHtml(pct(tF,tFP))}`);
+
+  let h=`<thead><tr><th>상품</th><th>전년 누계</th><th>올해 누계</th><th>증감액</th><th>증감률</th><th>비중(올해)</th></tr></thead><tbody>`;
+  for(const k in R) h+=`<tr><td><span class="dot" style="background:${COLORS[k]}"></span> ${esc(S.products[k].name)}</td><td>${fmt(R[k].ytdP)}</td><td>${fmt(R[k].ytdC)}</td><td>${sgn(R[k].ytdC-R[k].ytdP)}</td><td>${pctHtml(R[k].ytdG)}</td><td>${tC?(R[k].ytdC/tC*100).toFixed(1):0}%</td></tr>`;
+  h+=`</tbody><tfoot><tr><td>합계</td><td>${fmt(tP)}</td><td>${fmt(tC)}</td><td>${sgn(tC-tP)}</td><td>${pctHtml(pct(tC,tP))}</td><td>100%</td></tr></tfoot>`;
+  $('sumTable').innerHTML=h;
+
+  for(const k in R){
+    const p=S.products[k], r=R[k];
+    M.forEach((m,i)=>{
+      const f=$(`fc-${k}-${i}`); if(f) f.textContent=fmt(r.full[i]);
+      const c=+p.prev[i]||0;
+      $(`yy-${k}-${i}`).innerHTML = c?pctHtml(pct(r.full[i],c)):'-';
+    });
+    $(`pt-${k}-prev`).textContent=fmt(r.prevTotal);
+    $(`pt-${k}-cur`).textContent=fmt(r.fullTotal);
+    $(`yy-${k}-all`).innerHTML=pctHtml(pct(r.fullTotal,r.prevTotal));
+    $('ch-'+k).innerHTML=chart(p.prev,r.full,b);
+  }
+  for(const k in R){
+    const p=S.products[k], i=b-1, mc=+p.cur[i]||0, mp=+p.prev[i]||0, mg=pct(mc,mp);
+    const down=(mp&&mc<mp)||R[k].ytdC<R[k].ytdP, box=$('cb-'+k);
+    box.classList.toggle('warn',down);
+    $('cs-'+k).innerHTML=down
+      ?`⚠ 전년 대비 하락 — ${b}월 ${mg.toFixed(1)}% (${sgn(mc-mp)}) / 누계 ${R[k].ytdG.toFixed(1)}% (${sgn(R[k].ytdC-R[k].ytdP)}) · 하락 고객사와 사유를 기록하세요`
+      :`전년 대비 하락 없음 (${b}월 ${mg>=0?'+':''}${mg.toFixed(1)}% / 누계 ${R[k].ytdG>=0?'+':''}${R[k].ytdG.toFixed(1)}%)`;
+    const h=Object.keys(p.comments).map(Number).filter(m=>m<b&&(p.comments[m]||'').trim()).sort((x,y)=>x-y);
+    $('ch2-'+k).innerHTML=h.map(m=>`<div><b>${m}월</b> ${esc(p.comments[m])}</div>`).join('');
+  }
+  $('autoNote').textContent=Object.keys(R).map(k=>`${S.products[k].name} 적용 ${R[k].g.toFixed(1)}%${R[k].usedAuto?'(누계 기준)':''}`).join(' · ');
+
+  /* 예상 표 */
+  const rem=M.filter(m=>m>b);
+  let f=`<thead><tr><th>상품</th>${rem.map(m=>`<th>${m}월</th>`).join('')}<th>잔여월 합계</th><th>연간 예상</th><th>전년 대비</th></tr></thead><tbody>`;
+  if(!rem.length) f=`<tbody><tr><td>기준월이 12월이므로 잔여월이 없습니다.</td></tr>`;
+  else{
+    const tot=rem.map(()=>0);let tr=0;
+    for(const k in R){
+      const vals=rem.map(m=>R[k].full[m-1]), s=vals.reduce((a,c)=>a+c,0);
+      vals.forEach((v,i)=>tot[i]+=v); tr+=s;
+      f+=`<tr><td><span class="dot" style="background:${COLORS[k]}"></span> ${esc(S.products[k].name)}</td>${vals.map(v=>`<td>${fmt(v)}</td>`).join('')}<td>${fmt(s)}</td><td>${fmt(R[k].fullTotal)}</td><td>${pctHtml(pct(R[k].fullTotal,R[k].prevTotal))}</td></tr>`;
+    }
+    f+=`</tbody><tfoot><tr><td>합계</td>${tot.map(v=>`<td>${fmt(v)}</td>`).join('')}<td>${fmt(tr)}</td><td>${fmt(tF)}</td><td>${pctHtml(pct(tF,tFP))}</td></tr></tfoot>`;
+  }
+  $('fcTable').innerHTML=f;
+}
+
+/* SVG 막대 차트 */
+function chart(prev,full,b){
+  const W=520,H=210,L=40,B=24,T=10,pw=W-L-6,ph=H-B-T;
+  const max=Math.max(1,...prev,...full)*1.1, step=pw/12, bw=step*0.36;
+  let s=`<svg viewBox="0 0 ${W} ${H}" role="img">`;
+  for(let i=0;i<=4;i++){
+    const y=T+ph-ph*i/4, v=max*i/4;
+    s+=`<line x1="${L}" x2="${W-6}" y1="${y}" y2="${y}" stroke="var(--line)"/><text x="${L-5}" y="${y+3}" font-size="9" text-anchor="end" fill="var(--muted)">${fmt(v)}</text>`;
+  }
+  M.forEach((m,i)=>{
+    const x=L+step*i+step*0.1, hp=ph*(+prev[i]||0)/max, hc=ph*full[i]/max, act=m<=b;
+    s+=`<rect x="${x}" y="${T+ph-hp}" width="${bw}" height="${hp}" fill="var(--prev)" rx="2"/>`;
+    s+=`<rect x="${x+bw+2}" y="${T+ph-hc}" width="${bw}" height="${hc}" fill="${act?'var(--cur)':'var(--fc)'}" rx="2"/>`;
+    s+=`<text x="${L+step*i+step/2}" y="${H-8}" font-size="10" text-anchor="middle" fill="var(--muted)">${m}월</text>`;
+  });
+  return s+'</svg>';
+}
+
+/* 방문 계획 */
+function renderVisits(){
+  const opts=(sel,list)=>list.map(o=>`<option value="${o[0]}" ${o[0]==sel?'selected':''}>${o[1]}</option>`).join('');
+  const prods=Object.keys(S.products).map(k=>[k,S.products[k].name]).concat([['both','공통']]);
+  const st=['예정','완료','보류'].map(x=>[x,x]);
+  let h=`<thead><tr><th style="width:130px">일자</th><th>거래처</th><th style="width:110px">상품</th><th>방문 목적/핵심 안건</th><th style="width:90px">담당자</th><th style="width:80px">상태</th><th class="noprint"></th></tr></thead><tbody>`;
+  S.visits.forEach((v,i)=>{
+    h+=`<tr data-i="${i}"><td><input type="date" data-f="date" value="${esc(v.date)}"></td>
+    <td><input type="text" data-f="client" value="${esc(v.client)}"></td>
+    <td><select data-f="product">${opts(v.product,prods)}</select></td>
+    <td><input type="text" data-f="purpose" value="${esc(v.purpose)}"></td>
+    <td><input type="text" data-f="owner" value="${esc(v.owner)}"></td>
+    <td><select data-f="status">${opts(v.status,st)}</select></td>
+    <td class="act noprint"><button data-del="${i}">삭제</button></td></tr>`;
+  });
+  if(!S.visits.length) h+=`<tr><td colspan="7" style="text-align:center;color:var(--muted)">등록된 방문 계획이 없습니다.</td></tr>`;
+  $('visitTable').innerHTML=h+'</tbody>';
+  $('visitTable').querySelectorAll('[data-f]').forEach(el=>el.addEventListener('input',e=>{
+    const i=e.target.closest('tr').dataset.i; S.visits[i][e.target.dataset.f]=e.target.value; save();
+  }));
+  $('visitTable').querySelectorAll('[data-del]').forEach(el=>el.onclick=e=>{
+    S.visits.splice(+e.target.dataset.del,1); save(); renderVisits();
+  });
+}
+
+/* 이벤트 */
+$('year').addEventListener('change',e=>{S.year=+e.target.value||S.year;save();renderStatic();update()});
+$('unit').addEventListener('change',e=>{S.unit=e.target.value;save();update()});
+$('baseMonth').addEventListener('change',e=>{S.base=+e.target.value;save();renderStatic();update()});
+$('btnReset').onclick=()=>{if(confirm('4명 영업사원의 입력 내용을 모두 지우고 예시 데이터로 되돌릴까요?')){S=SAMPLE();save();init()}};
+$('btnAddVisit').onclick=()=>{
+  const d=`${S.year}-${String(S.base).padStart(2,'0')}-01`;
+  S.visits.push({date:d,client:'',product:'both',purpose:'',owner:'',status:'예정'});
+  save();renderVisits();
+};
+$('notes').addEventListener('input',e=>{S.reps[S.rep].notes=e.target.value;save()});
+
+function init(){useRep(S.rep);renderNav();renderStatic();update();renderVisits();$('notes').value=S.notes||''}
+window.addEventListener('hashchange',()=>{const h=location.hash.replace('#','').toUpperCase();if(REP_IDS.includes(h)&&h!==S.rep){S.rep=h;save();init();window.scrollTo(0,0)}});
+init();
+</script>
+</body>
+</html>
